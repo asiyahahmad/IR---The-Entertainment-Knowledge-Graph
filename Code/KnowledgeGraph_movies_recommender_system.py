@@ -2,6 +2,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
+import pandas as pd 
+
+from sklearn.mixture import GaussianMixture
+
 
 class KnowledgeGraph():
     """
@@ -18,7 +22,7 @@ class KnowledgeGraph():
         color_map = []
         movies_genres = {}
 
-        with open('final_dataset_imdb.csv',encoding="utf8") as csv_file:
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
             for row in csv_reader:
@@ -54,7 +58,11 @@ class KnowledgeGraph():
 
         plt.figure(figsize=(150,150))
         pos = nx.spring_layout(G,k=0.10,iterations=20)
-        nx.draw(G, with_labels=True, node_color=color_map, edge_color=edge_colors, node_size = 4500, prog="dot", edge_cmap=plt.cm.Blues, font_size=16, pos=pos)
+        # nx.draw(G, with_labels=True, node_color=color_map, edge_color=edge_colors, node_size = 4500, prog="dot", edge_cmap=plt.cm.Blues, font_size=16, pos=pos)
+        nx.draw_networkx_nodes(G, node_size = 4500, pos=pos, edgecolors='black', label=True, node_color='black', node_shape='o')
+        # G = nx.path_graph(4)  # or DiGraph, MultiGraph, MultiDiGraph, etc
+        H = G.subgraph([0, 1, 2])
+        nx.draw_networkx(H, pos=pos);
         plt.savefig("my_graph.pdf")
         print("\nPlease Check my_graph.pdf in the current code directory\n")
     
@@ -66,7 +74,7 @@ class KnowledgeGraph():
         color_map = []
         node_sizes = []
         colors = ['#5013ED', '#42853C', '#D4E907', '#2A257D', '#EF093B', '#8CA030', '#35B1DA', '#3F4F33', '#CAA341', '#B69BAE', '#E77FE2', '#9483F4', '#77DF5D', '#F3902F', '#E88182', '#713338', '#5CEFAB', '#863771', '#53EF26', '#FF80FF', '#6FF6FF']
-        with open('final_dataset_imdb.csv',encoding="utf8") as csv_file:
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
                 if row[2]==title:
@@ -136,12 +144,123 @@ class KnowledgeGraph():
         plt.figure(figsize=(25,25))
         pos = nx.shell_layout(G)
         pos[a] = np.array([0, 0])
-        nx.draw(G, with_labels=True, node_color=color_map, node_size = node_sizes, prog="dot", edge_cmap=plt.cm.Blues, font_size=20, pos=pos)
+        nx.draw_networkx(G,  pos=pos, with_labels=True)
         edge_labels = nx.get_edge_attributes(G, 'movie')
-        nx.draw_networkx_edge_labels(G, pos, labels=edge_labels, font_size=20)
+        nx.draw_networkx_edge_labels(G, pos, font_size=20)
         plt.savefig("movie_detail.pdf")
         print("Description of movie: ", description)
         print("\nPlease Check movie_detail.pdf in the current code directory\n")
+        
+
+    def movie_details_bootstrap(self, title):
+        """
+        Method to plot detailed KG of a single movie.
+        """
+        G = nx.MultiDiGraph()
+        color_map = []
+        node_sizes = []
+        colors = ['#5013ED', '#42853C', '#D4E907', '#2A257D', '#EF093B', '#8CA030', '#35B1DA', '#3F4F33', '#CAA341', '#B69BAE', '#E77FE2', '#9483F4', '#77DF5D', '#F3902F', '#E88182', '#713338', '#5CEFAB', '#863771', '#53EF26', '#FF80FF', '#6FF6FF']
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
+            
+            gmm = GaussianMixture(n_components = 3)
+            df = pd.read_csv('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv')  
+            gmm.fit(df)
+            labels = gmm.predict(df)
+            
+
+            #predictions from gmm
+            labels = gmm.predict(df)
+            frame = pd.DataFrame(df)
+            frame['cluster'] = labels
+            frame.columns = ['Weight', 'Height', 'cluster']
+            
+
+            #Now draw those predicted labels
+            csv_reader = csv.reader(df , delimiter=',')
+            for row in csv_reader:
+                if row[2]==title:
+                    row[1]=row[2]
+                    a = row[1]
+                    G.add_node(row[1])
+                    color_map.append('red')
+                    node_sizes.append(20000)
+                    G.add_node(row[4])
+                    color_map.append(colors[1])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],row[4], movie='Released on')
+                    G.add_node("Genres")
+                    color_map.append(colors[2])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],"Genres", movie='Genres include')
+                    for i in list(row[5].split(", ")):
+                        G.add_node(i)
+                        color_map.append(colors[4])
+                        node_sizes.append(7000)
+                        G.add_edge("Genres", i)
+                    G.add_node(row[6])
+                    color_map.append(colors[5])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],row[6], movie='Duration(Mins)')
+                    G.add_node(row[7])
+                    color_map.append(colors[6])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],row[7], movie='Country released in')
+                    G.add_node("Languages")
+                    color_map.append(colors[7])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],"Languages", movie='languages released in')
+                    count=0
+                    for i in list(row[8].split(", ")):
+                        G.add_node(i)
+                        color_map.append(colors[18])
+                        node_sizes.append(5000)
+                        G.add_edge("Languages", i)
+                        if count>4:
+                            break
+                        count+=1
+                    G.add_node(row[9])
+                    color_map.append(colors[8])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],row[9], movie='Directed by')
+                    G.add_node("Cast")
+                    color_map.append(colors[9])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],"Cast", movie='cast includes')
+                    count=0
+                    for i in list(row[12].split(", ")):
+                        G.add_node(i)
+                        color_map.append(colors[10])
+                        node_sizes.append(5000)
+                        G.add_edge("Cast", i)
+                        if count>4:
+                            break
+                        count+=1
+                    description = row[13]
+                    G.add_node(row[14])
+                    color_map.append(colors[11])
+                    node_sizes.append(7000)
+                    G.add_edge(row[1],row[14], movie='Rating')
+                    break
+                    
+        plt.figure(figsize=(25,25))
+        pos = nx.shell_layout(G)
+        pos[a] = np.array([0, 0])
+       
+        nx.draw_networkx(G,  pos=pos, with_labels=True)
+        edge_labels = nx.get_edge_attributes(G, 'movie')
+        nx.draw_networkx_edge_labels(G, pos, font_size=20)
+        plt.savefig("movie_detail.pdf")
+
+        
+        nx.draw_networkx(G,  pos=pos, with_labels=True)
+        edge_labels = nx.get_edge_attributes(G, 'movie')
+        nx.draw_networkx_edge_labels(G, pos, font_size=20)
+        plt.savefig("movie_detail.pdf")
+        print("Description of movie: ", description)
+        print("\nPlease Check movie_detail.pdf in the current code directory\n")
+        print("Look at the semantic relationships in the graph - which one are you most interested in?")
+        print("As a reminder, the following edges exist: Directed by, Cast includes, Country Released in, Duration, Genre")
+
 
     def movie_similarity(self, movie1, movie2):
         """
@@ -150,7 +269,7 @@ class KnowledgeGraph():
         G = nx.MultiDiGraph()
         color_map = []
         node_sizes = []
-        with open('final_dataset_imdb.csv',encoding="utf8") as csv_file:
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
                 if row[2]==movie1:
@@ -158,7 +277,7 @@ class KnowledgeGraph():
                     a=row[1]
                     movie1row = row
                     break
-        with open('final_dataset_imdb.csv',encoding="utf8") as csv_file:
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
                 
@@ -232,7 +351,7 @@ class KnowledgeGraph():
         """
         Method to return list of best matching movies based on a ranking system.
         """
-        with open('final_dataset_imdb.csv',encoding="utf8") as csv_file:
+        with open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/final_dataset_imdb.csv',encoding="utf8") as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
                 if row[2]==movie1:
@@ -316,10 +435,10 @@ if __name__ == "__main__":
             exit()
         elif option == 1:
             movie_name = input("Enter Movie Name(Case Sensitive): ")
-            try:
-                KG.movie_details(movie_name)
-            except:
-                print("Movie not found in database. Check movie name again along with case.")
+            # try:
+            KG.movie_details_bootstrap(movie_name)
+            # except:
+            #     print("Movie not found in database. Check movie name again along with case.")
         elif option == 2:
             movie_1 = input("Enter Movie Name 1(Case Sensitive): ")
             movie_2 = input("Enter Movie Name 2(Case Sensitive): ")

@@ -16,7 +16,7 @@ class Trie:
     def __init__(self):
         self.data = defaultdict(MyDict)
 
-    def load(self, filename='dictionary.txt'):
+    def load(self, filename='/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/dictionary.txt', encoding= 'unicode_escape' ):
         """
         Loads the dictionary words from the text file.
         """
@@ -109,7 +109,7 @@ class Trie:
 
 def words(text): return re.findall(r'\w+', text.lower())
 
-WORDS = dict(Counter(words(open('dictionary.txt').read())))
+WORDS = dict(Counter(words(open('/Users/asiyahahmad/Documents/GitHub/IR---The-Entertainment-Knowledge-Graph/Code/dictionary.txt').read())))
 
 
 def priorProbability(word, N=100):
